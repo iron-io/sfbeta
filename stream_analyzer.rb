@@ -1,6 +1,7 @@
 require 'iron_worker_ng'
 require 'rest-client'
 require 'active_support/core_ext'
+require 'hipchat-api'
 
 kw = "voteiron"
 x=duration=0
@@ -16,13 +17,19 @@ while (true)
   results['results'].each_with_index do |r, i|
     all.include?(r['id_str']) ? next : all << r['id_str']
     client = IronWorkerNG::Client.new('','')
-    client.tasks.create('HitAction', 'r' => r)
+    hipchat = HipChat::API.new('')
+    hipchat.rooms_message("Test Room", 'SF Beta Bot', "@#{r['from_user']} says: #{r['text']}", false).body
+    Thread.new do |t|
+      100.times do |i|
+        client.tasks.create('HitAction', 'r' => r)
+      end
+    end
   end
 
   duration = (Time.now - start_time).round(1)
   puts "Total Duration: #{duration} seconds"
 
-  if duration > 60
+  if duration > 120
     client = IronWorkerNG::Client.new('','')
     client.tasks.create('StreamAnalyzer', 'found_tweets' => all)
     break
